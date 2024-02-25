@@ -1,0 +1,14 @@
+{
+  "name": "ChungHyun",
+  "version": "IN DEV",
+  "description": "indev",
+  "main": "index.js",
+  "author": "HYtinyfloor hya",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}
