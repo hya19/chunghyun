@@ -7,6 +7,7 @@ const { clientId, guildId, token } = require('./config.json');
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
+client.cooldowns = new Collection();
 client.commands = new Collection();
 
 const foldersPath = path.join(__dirname, 'commands');
@@ -84,14 +85,40 @@ client.on(Events.InteractionCreate, async interaction => {
 		return;
 	}
 
+    const { cooldowns } = interaction.client;
+
+    if (!cooldowns.has(command.data.name)) {
+        cooldowns.set(command.data.name, new Collection());
+    }
+    
+    const now = Date.now();
+    const timestamps = cooldowns.get(command.data.name);
+    const defaultCooldownDuration = 0;
+    const cooldownAmount = (command.cooldown ?? defaultCooldownDuration) * 1_000;
+    
+    if (timestamps.has(interaction.user.id)) {
+        	const expirationTime = timestamps.get(interaction.user.id) + cooldownAmount;
+
+            if (now < expirationTime) {
+                const expiredTimestamp = Math.round(expirationTime / 1_000);
+                const andTime = new Date(expiredTimestamp * 1000);
+                //todo 시간 표시 읽기쉽게
+                return interaction.reply({ content: `지금은 이 명령어를 사용할 수 없어요.\n${andTime}에 재시도 해주세요.\n[알려진 버그]현재 이 기능에서 시간이 읽기 어렵게 나오는 문제를 인지하고 있으며, 다음버전에서 개선될 예정임을 알려드립니다.`, ephemeral: false });
+            }
+    }
+    
+    //길드관련 이슈 발생시 아래 코드 삭제요망
+    timestamps.set(interaction.user.id, now);
+    setTimeout(() => timestamps.delete(interaction.user.id), cooldownAmount);
+
 	try {
 		await command.execute(interaction);
 	} catch (error) {
 		console.error(error);
 		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({ content: '명령어 처리중에 오류가 발생했습니다. 이 오류가 버그라고 생각되신다면, hy@ontestbed.com으로 문의하여주십시오.', ephemeral: true });
+			await interaction.followUp({ content: '명령어 처리중에 오류가 발생했어요. 이 오류가 버그라고 생각되신다면, hy@ontestbed.com으로 문의하여주세요.', ephemeral: true });
 		} else {
-			await interaction.reply({ content: '명령어 처리중에 오류가 발생했습니다.', ephemeral: true });
+			await interaction.reply({ content: '명령어 처리중에 오류가 발생했어요. 이 오류가 버그라고 생각되신다면, hy@ontestbed.com으로 문의하여주세요.', ephemeral: true });
 		}
 	}
 });
